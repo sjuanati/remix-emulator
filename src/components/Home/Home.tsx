@@ -13,11 +13,14 @@ declare let window: any;
 interface BalanceOf {
     address: string,
     amount: string,
-}
+};
+
+type Action = 'deposit' | 'withdraw';
 
 const Home = () => {
     const user = useTypedSelector(state => state.user);
-    const [amountETH, setAmountETH] = React.useState<string>('');
+    const [_depositETH, _setDepositETH] = React.useState<string>('');
+    const [_withdrawETH, _setWithdrawETH] = React.useState<string>('');
     const [_balance, _setBalance] = React.useState<string>('');
     const [_balanceOf, _setBalanceOf] = React.useState<BalanceOf>();
 
@@ -27,19 +30,27 @@ const Home = () => {
     const web3js = new Web3(ganache);
     const contract = new web3js.eth.Contract(TokenManager, CONTRACT_ADDRESS.Ganache.TokenManager);
 
-
-    const handleDepositETH = () => {
+    const transferETH = (action: Action) => {
         if (!user.account) {
             console.log('Please connect to your Wallet');
-        } else if (!amountETH) {
+        } else if ((!_depositETH && action === 'deposit') ||
+            (!_withdrawETH && action === 'withdraw')) {
             console.log('Please insert an amount in ether');
         } else {
+
+            const amount = (action === 'deposit') ? _depositETH : _withdrawETH
+            const value = web3js.utils.toHex(web3js.utils.toWei(amount, 'ether'));
+
+            const method = (action === 'deposit')
+                ? contract.methods.depositETH().encodeABI()
+                : contract.methods.withdrawETH(value).encodeABI();
+
             // Define parameters
             const txParams = {
                 from: user.account,
                 to: CONTRACT_ADDRESS.Ganache.TokenManager,
-                data: contract.methods.depositETH().encodeABI(),
-                value: web3js.utils.toHex(web3js.utils.toWei(amountETH, 'ether')),
+                data: method,
+                value: (action === 'deposit') ? value : 0,
                 chainId: user.chainId,
             };
             // Launch transaction
@@ -65,16 +76,16 @@ const Home = () => {
 
     const balanceOf = () => {
         if (_balanceOf && _balanceOf.address.length === 42) {
-        contract.methods.balanceOf(_balanceOf.address).call()
-            .then((res: string) => {
-                _setBalanceOf({
-                    address: _balanceOf.address,
-                    amount: web3js.utils.fromWei(res, 'ether')
+            contract.methods.balanceOf(_balanceOf.address).call()
+                .then((res: string) => {
+                    _setBalanceOf({
+                        address: _balanceOf.address,
+                        amount: web3js.utils.fromWei(res, 'ether')
+                    });
+                })
+                .catch((err: string) => {
+                    console.log('Error in Home->balanceOf(): ', err);
                 });
-            })
-            .catch((err: string) => {
-                console.log('Error in Home->balanceOf(): ', err);
-            });
         } else {
             console.log('Please input a valid address');
         };
@@ -127,23 +138,29 @@ const Home = () => {
                 <div className={'description'}>
                     <button
                         className={'red'}
-                        onClick={handleDepositETH}>
+                        onClick={() => transferETH('deposit')}>
                         depositETH
                     </button>
                 </div>
                 <div>
                     <input
                         type="number"
-                        onChange={(elem) => setAmountETH(elem.target.value)} />
+                        onChange={(elem) => _setDepositETH(elem.target.value)} />
                 </div>
             </div>
 
             <div className={'item'}>
                 <div className={'description'}>
-                    <button className={'orange'}> Balance </button>
+                    <button
+                        className={'orange'}
+                        onClick={() => transferETH('withdraw')}>
+                        withdrawETH
+                    </button>
                 </div>
                 <div>
-                    Whatever
+                    <input
+                        type="number"
+                        onChange={(elem) => _setWithdrawETH(elem.target.value)} />
                 </div>
             </div>
 
@@ -156,13 +173,13 @@ const Home = () => {
                     </button>
                 </div>
                 <input
-                        type="text"
-                        onChange={(elem) => 
-                            _setBalanceOf({
-                                address: elem.target.value,
-                                amount: '',
-                            })
-                        } />
+                    type="text"
+                    onChange={(elem) =>
+                        _setBalanceOf({
+                            address: elem.target.value,
+                            amount: '',
+                        })
+                    } />
                 <div className={'description'}>
                     {_balanceOf?.amount}
                 </div>
