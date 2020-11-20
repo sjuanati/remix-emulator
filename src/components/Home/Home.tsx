@@ -10,12 +10,16 @@ import './Home.css';
 
 declare let window: any;
 
+interface BalanceOf {
+    address: string,
+    amount: string,
+}
 
 const Home = () => {
     const user = useTypedSelector(state => state.user);
     const [amountETH, setAmountETH] = React.useState<string>('');
     const [_balance, _setBalance] = React.useState<string>('');
-    const [_balanceOf, _setBalanceOf] = React.useState<string>('');
+    const [_balanceOf, _setBalanceOf] = React.useState<BalanceOf>();
 
     let TokenManager: any;
     TokenManager = rawContract.abi;
@@ -60,13 +64,20 @@ const Home = () => {
     };
 
     const balanceOf = () => {
-        contract.methods.balanceOf().call()
-            .then((res: any) => {
-                console.log(res);
+        if (_balanceOf && _balanceOf.address.length === 42) {
+        contract.methods.balanceOf(_balanceOf.address).call()
+            .then((res: string) => {
+                _setBalanceOf({
+                    address: _balanceOf.address,
+                    amount: web3js.utils.fromWei(res, 'ether')
+                });
             })
             .catch((err: string) => {
-                console.log(err);
+                console.log('Error in Home->balanceOf(): ', err);
             });
+        } else {
+            console.log('Please input a valid address');
+        };
     };
 
     const balance = () => {
@@ -92,9 +103,7 @@ const Home = () => {
             .catch((err: any) => {
                 console.log('KO:', err);
             });
-
-
-    }
+    };
 
     return (
         <div className={'container'}>
@@ -146,8 +155,16 @@ const Home = () => {
                         balanceOf
                     </button>
                 </div>
-                <div>
-                    {_balanceOf}
+                <input
+                        type="text"
+                        onChange={(elem) => 
+                            _setBalanceOf({
+                                address: elem.target.value,
+                                amount: '',
+                            })
+                        } />
+                <div className={'description'}>
+                    {_balanceOf?.amount}
                 </div>
             </div>
 
