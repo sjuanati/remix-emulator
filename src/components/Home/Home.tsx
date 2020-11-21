@@ -15,7 +15,14 @@ interface BalanceOf {
     amount: string,
 };
 
-type Action = 'deposit' | 'withdraw';
+interface TokenERC20 {
+    address: string,
+    name: string
+}
+
+type Transfer = 'deposit' | 'withdraw';
+type Register = 'register' | 'unregister';
+
 
 const Home = () => {
     const user = useTypedSelector(state => state.user);
@@ -23,6 +30,7 @@ const Home = () => {
     const [_withdrawETH, _setWithdrawETH] = React.useState<string>('');
     const [_balance, _setBalance] = React.useState<string>('');
     const [_balanceOf, _setBalanceOf] = React.useState<BalanceOf>();
+    const [_tokenERC20, _setTokenERC20] = React.useState<TokenERC20>();
 
     let TokenManager: any;
     TokenManager = rawContract.abi;
@@ -30,7 +38,7 @@ const Home = () => {
     const web3js = new Web3(ganache);
     const contract = new web3js.eth.Contract(TokenManager, CONTRACT_ADDRESS.Ganache.TokenManager);
 
-    const transferETH = (action: Action) => {
+    const transferETH = (action: Transfer) => {
         if (!user.account) {
             console.log('Please connect to your Wallet');
         } else if ((!_depositETH && action === 'deposit') ||
@@ -58,8 +66,30 @@ const Home = () => {
         };
     };
 
-    const handleRenounceOwnership = () => {
-        console.log('user: ', user)
+    const registerERC20 = (action: Register) => {
+        if (!user.account) {
+            console.log('Please connect to your Wallet');
+        } else if (!_tokenERC20) {
+            console.log('Please insert any token to (un)register');
+        } else if (_tokenERC20 && _tokenERC20.name === '') {
+            console.log('Please insert a valid address to register token');
+        } else {
+
+            const method = (action === 'register')
+                ? contract.methods.registerERC20(_tokenERC20.name, _tokenERC20.address).encodeABI()
+                : contract.methods.unregisterERC20(_tokenERC20.name).encodeABI();
+
+            // Define parameters
+            const txParams = {
+                from: user.account,
+                to: CONTRACT_ADDRESS.Ganache.TokenManager,
+                data: method,
+                value: 0,
+                chainId: user.chainId,
+            };
+            // Launch transaction
+            metamaskTX(txParams);
+        };
     };
 
     const transferOwnership = () => {
@@ -161,6 +191,65 @@ const Home = () => {
                     <input
                         type="number"
                         onChange={(elem) => _setWithdrawETH(elem.target.value)} />
+                </div>
+            </div>
+
+            <div className={'item'}>
+                <div className={'description'}>
+                    <button
+                        className={'orange'}
+                        onClick={() => registerERC20('register')}>
+                        registerERC20
+                    </button>
+                </div>
+                <div>
+                    <input
+                        type="text"
+                        placeholder='name'
+                        onChange={(elem) => {
+                            const prev = {
+                                address: (_tokenERC20) ? _tokenERC20.address : '',
+                                name: elem.target.value
+                            };
+                            _setTokenERC20(prev);
+                        }} 
+                    />
+                </div>
+                <div>
+                    <input
+                        type="text"
+                        placeholder='address'
+                        onChange={(elem) => {
+                            const prev = {
+                                address: elem.target.value,
+                                name: (_tokenERC20) ? _tokenERC20.name : ''
+                            };
+                            _setTokenERC20(prev);
+                        }} 
+                    />
+                </div>
+            </div>
+
+            <div className={'item'}>
+                <div className={'description'}>
+                    <button
+                        className={'orange'}
+                        onClick={() => registerERC20('unregister')}>
+                        unregisterERC20
+                    </button>
+                </div>
+                <div>
+                <input
+                        type="text"
+                        placeholder='name'
+                        onChange={(elem) => {
+                            const prev = {
+                                address: (_tokenERC20) ? _tokenERC20.address : '',
+                                name: elem.target.value
+                            };
+                            _setTokenERC20(prev);
+                        }} 
+                    />
                 </div>
             </div>
 
