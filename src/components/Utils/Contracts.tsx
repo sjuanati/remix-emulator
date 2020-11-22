@@ -12,6 +12,6 @@ export const CONTRACT_ADDRESS = {
         "WETH": "0xc778417e063141139fce010982780140aa0cd5ab",
     },
     "Ganache": {
-        "TokenManager": "0xe5d6ED65ECbad019AcB7EF073613014e2bEEa627",
+        "TokenManager": "0xba296b38416ba9491EDc1cfe663ee2dD63b4c629",
     }
 };

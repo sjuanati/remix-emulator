@@ -21,7 +21,6 @@ interface TokenERC20 {
 }
 
 type Transfer = 'deposit' | 'withdraw';
-type Register = 'register' | 'unregister';
 
 
 const Home = () => {
@@ -31,6 +30,7 @@ const Home = () => {
     const [_balance, _setBalance] = React.useState<string>('');
     const [_balanceOf, _setBalanceOf] = React.useState<BalanceOf>();
     const [_tokenERC20, _setTokenERC20] = React.useState<TokenERC20>();
+    const [_bytes32, _setBytes32] = React.useState<string>('');
 
     let TokenManager: any;
     TokenManager = rawContract.abi;
@@ -66,7 +66,7 @@ const Home = () => {
         };
     };
 
-    const registerERC20 = (action: Register) => {
+    const registerERC20 = () => {
         if (!user.account) {
             console.log('Please connect to your Wallet');
         } else if (!_tokenERC20) {
@@ -74,10 +74,8 @@ const Home = () => {
         } else if (_tokenERC20 && _tokenERC20.name === '') {
             console.log('Please insert a valid address to register token');
         } else {
-
-            const method = (action === 'register')
-                ? contract.methods.registerERC20(_tokenERC20.name, _tokenERC20.address).encodeABI()
-                : contract.methods.unregisterERC20(_tokenERC20.name).encodeABI();
+            const tokenName = web3js.utils.asciiToHex(_tokenERC20.name);
+            const method = contract.methods.registerERC20(tokenName, _tokenERC20.address).encodeABI()
 
             // Define parameters
             const txParams = {
@@ -92,17 +90,48 @@ const Home = () => {
         };
     };
 
-    const transferOwnership = () => {
-
+    const unregisterERC20 = () => {
+        if (!user.account) {
+            console.log('Please connect to your Wallet');
+        } else if (!_tokenERC20 || _tokenERC20.name === '') {
+            console.log('Please insert any token to (un)register');
+        } else {
+            const tokenName = web3js.utils.asciiToHex(_tokenERC20.name);
+            const method = contract.methods.unregisterERC20(tokenName).encodeABI()
+            // Define parameters
+            const txParams = {
+                from: user.account,
+                to: CONTRACT_ADDRESS.Ganache.TokenManager,
+                data: method,
+                value: 0,
+                chainId: user.chainId,
+            };
+            // Launch transaction
+            metamaskTX(txParams);
+        };
     };
 
-    const contractAddressERC20 = () => {
+    const bulkRegisterERC20 = () => {
+        if (!user.account) {
+            console.log('Please connect to your Wallet');
+        } else {
+            const tokenNames = [web3js.utils.asciiToHex("DAI"), web3js.utils.asciiToHex("UNI")];
+            const tokenAddresses = ["0xad6d458402f60fd3bd25163575031acdce07538d", "0x1f9840a85d5af5bf1d1762f925bdaddc4201f984"];
+            const method = contract.methods.bulkRegisterERC20(tokenNames, tokenAddresses).encodeABI();
 
+            // Define parameters
+            const txParams = {
+                from: user.account,
+                to: CONTRACT_ADDRESS.Ganache.TokenManager,
+                data: method,
+                value: 0,
+                chainId: user.chainId,
+            };
+            // Launch transaction
+            metamaskTX(txParams);
+        };
     };
 
-    const contractAddressERC721 = () => {
-
-    };
 
     const balanceOf = () => {
         if (_balanceOf && _balanceOf.address.length === 42) {
@@ -163,6 +192,23 @@ const Home = () => {
                 </div>
             </div>
 
+            <div className={'item'}>
+                <div className={'description'}>
+                    <button className={'grey'}>
+                        bytes32 converter
+                    </button>
+                </div>
+                <div>
+                    <input
+                        type="text"
+                        onChange={(elem) => _setBytes32(web3js.utils.asciiToHex(elem.target.value).padEnd(66, '0'))}
+                    />
+                </div>
+                <div className={'description'}>
+                    {_bytes32}
+                </div>
+            </div>
+
 
             <div className={'item'}>
                 <div className={'description'}>
@@ -198,7 +244,17 @@ const Home = () => {
                 <div className={'description'}>
                     <button
                         className={'orange'}
-                        onClick={() => registerERC20('register')}>
+                        onClick={() => bulkRegisterERC20()}>
+                        bulkRegisterERC20
+                    </button>
+                </div>
+            </div>
+
+            <div className={'item'}>
+                <div className={'description'}>
+                    <button
+                        className={'orange'}
+                        onClick={() => registerERC20()}>
                         registerERC20
                     </button>
                 </div>
@@ -212,7 +268,7 @@ const Home = () => {
                                 name: elem.target.value
                             };
                             _setTokenERC20(prev);
-                        }} 
+                        }}
                     />
                 </div>
                 <div>
@@ -225,7 +281,7 @@ const Home = () => {
                                 name: (_tokenERC20) ? _tokenERC20.name : ''
                             };
                             _setTokenERC20(prev);
-                        }} 
+                        }}
                     />
                 </div>
             </div>
@@ -234,12 +290,12 @@ const Home = () => {
                 <div className={'description'}>
                     <button
                         className={'orange'}
-                        onClick={() => registerERC20('unregister')}>
+                        onClick={() => unregisterERC20()}>
                         unregisterERC20
                     </button>
                 </div>
                 <div>
-                <input
+                    <input
                         type="text"
                         placeholder='name'
                         onChange={(elem) => {
@@ -248,7 +304,7 @@ const Home = () => {
                                 name: elem.target.value
                             };
                             _setTokenERC20(prev);
-                        }} 
+                        }}
                     />
                 </div>
             </div>
